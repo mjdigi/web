@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Home - Village Food Delivery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Open Sans', sans-serif;
+      background-color: #f8f9fa;
+      color: #343a40;
+      line-height: 1.6;
+    }
+
+    .header {
+      background-color: #28a745;
+      color: white;
+      padding: 1rem 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .top-navigation {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .top-navigation a,
+    .top-navigation button {
+      color: white;
+      text-decoration: none;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.5rem 0;
+    }
+
+    .top-navigation a:hover,
+    .top-navigation button:hover {
+      text-decoration: underline;
+    }
+
+    .cart-button {
+      position: relative;
+      padding: 0.5rem 1rem;
+      border: 1px solid white;
+      border-radius: 0.25rem;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      background-color: #dc3545;
+      color: white;
+      font-size: 0.8rem;
+      border-radius: 50%;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    h1 {
+      color: #28a745;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    #search-bar {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .menu-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .menu-item {
+      background-color: #fff;
+      border-radius: 0.5rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .item-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+      margin-bottom: 10px;
+    }
+
+    .item-details span {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #28a745;
+    }
+
+    .item-details em {
+      color: #6c757d;
+      font-style: normal;
+      font-size: 0.9rem;
+    }
+
+    .item-details p {
+      color: #555;
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+    }
+
+    .add-to-cart-button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 0.25rem;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: auto;
+    }
+
+    .add-to-cart-button:hover {
+      background-color: #0056b3;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .top-navigation {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .container {
+        padding: 15px;
+      }
+
+      .menu-list {
+        grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">Village Food Delivery</div>
+    <nav class="top-navigation">
+      <a href="home.html">Home</a>
+      <a href="#" onclick="goToCart()" class="cart-button">
+        Cart <span id="cart-item-count" class="cart-count" style="display: none;">0</span>
+      </a>
+      <a href="#" onclick="goToOrders()">Your Orders</a>
+      <button onclick="logout()">Logout</button>
+      <button id="admin-button" style="display: none;" onclick="goToAdminPanel()">Admin Panel</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h1>Our Menu</h1>
+    <input type="text" id="search-bar" placeholder="Search food...">
+    <ul id="menu-list" class="menu-list"></ul>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const menuList = document.getElementById('menu-list');
+    const cartCountSpan = document.getElementById('cart-item-count');
+    const searchBar = document.getElementById('search-bar');
+    const adminButton = document.getElementById('admin-button');
+
+    let cartItemList = [];
+    let allMenuItems = [];
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = 'login.html';
+      } else {
+        // Check if the user is an admin
+        db.collection('users').doc(user.uid).get().then(doc => {
+          const userData = doc.data();
+          if (userData && userData.role === 'admin') {
+            adminButton.style.display = 'inline-block';
+          }
+        });
+      }
+    });
+
+    function loadCart() {
+      const stored = localStorage.getItem('cartItems');
+      if (stored) {
+        try {
+          cartItemList = JSON.parse(stored);
+        } catch {
+          cartItemList = [];
+        }
+      }
+    }
+
+    function updateCartCount() {
+      const totalItems = cartItemList.reduce((sum, item) => sum + item.quantity, 0);
+      cartCountSpan.textContent = totalItems;
+      cartCountSpan.style.display = totalItems > 0 ? 'inline-block' : 'none';
+    }
+
+    function addToCart(id, name, price, desc) {
+      const existing = cartItemList.find(item => item.id === id);
+      if (existing) {
+        existing.quantity++;
+      } else {
+        cartItemList.push({ id, name, price, description: desc, quantity: 1 });
+      }
+      updateCartCount();
+      localStorage.setItem('cartItems', JSON.stringify(cartItemList));
+      alert(`${name} added to cart!`);
+    }
+
+    function loadMenu() {
+      db.collection('menu').get().then(snapshot => {
+        menuList.innerHTML = '';
+        allMenuItems = [];
+
+        snapshot.forEach(doc => {
+          const item = doc.data();
+          const itemId = doc.id;
+          allMenuItems.push({ id: itemId, ...item });
+        });
+
+        renderMenuItems(allMenuItems);
+      }).catch(error => {
+        console.error("Error loading menu:", error);
+        alert("Failed to load menu.");
+      });
+    }
+
+    function renderMenuItems(items) {
+      menuList.innerHTML = '';
+
+      items.forEach(item => {
+        const price = parseFloat(item.price);
+        const li = document.createElement('li');
+        li.className = 'menu-item';
+        li.innerHTML = `
+          ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" class="item-image">` : ''}
+          <div class="item-details">
+            <span>${item.name}</span>
+            <em>₹${price.toFixed(2)}</em>
+            <p>${item.description || ''}</p>
+          </div>
+          <button class="add-to-cart-button"
+            onclick="addToCart('${item.id}', '${item.name}', ${price}, '${item.description || ''}')">
+            Add to Cart
+          </button>
+        `;
+        menuList.appendChild(li);
+      });
+    }
+
+    searchBar.addEventListener('input', () => {
+      const query = searchBar.value.toLowerCase();
+      const filtered = allMenuItems.filter(item =>
+        item.name.toLowerCase().includes(query) ||
+        (item.description && item.description.toLowerCase().includes(query))
+      );
+      renderMenuItems(filtered);
+    });
+
+    function goToCart() {
+      localStorage.setItem('cartItems', JSON.stringify(cartItemList));
+      window.location.href = 'cart.html';
+    }
+
+    function goToOrders() {
+      window.location.href = 'orders.html';
+    }
+
+    function goToAdminPanel() {
+      window.location.href = 'admin.html';
+    }
+
+    function logout() {
+      auth.signOut().then(() => {
+        window.location.href = 'login.html';
+      }).catch(err => {
+        alert("Logout failed.");
+      });
+    }
+
+    loadCart();
+    updateCartCount();
+    loadMenu();
+  </script>
+</body>
+</html>

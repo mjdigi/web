@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+
+    header {
+      background-color: #28a745;
+      color: white;
+      padding: 1rem 20px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    nav button {
+      background-color: #007bff;
+      color: white;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      border-radius: 0.3rem;
+    }
+
+    nav button:hover {
+      background-color: #0056b3;
+    }
+
+    #orders-container, #menu-container {
+      display: none;
+      padding: 20px;
+      background-color: white;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    #add-menu-form {
+      margin-top: 20px;
+    }
+
+    #add-menu-form input, #add-menu-form textarea {
+      width: 100%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      border-radius: 0.3rem;
+      border: 1px solid #ddd;
+    }
+
+    #add-menu-form button {
+      background-color: #28a745;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      border-radius: 0.3rem;
+    }
+
+    #add-menu-form button:hover {
+      background-color: #218838;
+    }
+
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .menu-item span, .menu-item em {
+      font-size: 1rem;
+    }
+
+    .menu-item button {
+      background-color: #dc3545;
+      color: white;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      border-radius: 0.3rem;
+    }
+
+    .menu-item button:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Admin Panel - Village Food Delivery</h1>
+    <nav>
+      <button onclick="loadOrders()">View Orders</button>
+      <button onclick="loadMenu()">Manage Menu</button>
+      <button onclick="logout()">Logout</button>
+    </nav>
+  </header>
+
+  <!-- Orders Section -->
+  <div id="orders-container">
+    <h2>Orders</h2>
+    <div id="order-list">Loading...</div>
+  </div>
+
+  <!-- Menu Management Section -->
+  <div id="menu-container">
+    <h2>Manage Menu</h2>
+    <form id="add-menu-form">
+      <input type="text" id="menu-name" placeholder="Item Name" required>
+      <input type="number" id="menu-price" placeholder="Price (₹)" required>
+      <textarea id="menu-description" placeholder="Description"></textarea>
+      <button type="submit">Add New Item</button>
+    </form>
+    <div id="menu-list">Loading menu...</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

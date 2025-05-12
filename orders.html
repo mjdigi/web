@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Your Orders - Village Food Delivery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Open Sans', sans-serif;
+      background-color: #f8f9fa;
+      color: #343a40;
+    }
+    .header {
+      background-color: #28a745;
+      color: white;
+      padding: 1rem 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .top-navigation {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .top-navigation a,
+    .top-navigation button {
+      color: white;
+      text-decoration: none;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.5rem 0;
+    }
+    .top-navigation a:hover,
+    .top-navigation button:hover {
+      text-decoration: underline;
+    }
+    .cart-button {
+      position: relative;
+      padding: 0.5rem 1rem;
+      border: 1px solid white;
+      border-radius: 0.25rem;
+    }
+    .cart-count {
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      background-color: #dc3545;
+      color: white;
+      font-size: 0.8rem;
+      border-radius: 50%;
+      padding: 0.2rem 0.4rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+    h1 {
+      color: #28a745;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .order {
+      border-bottom: 1px solid #ddd;
+      padding: 15px 0;
+    }
+    .order-status {
+      font-weight: bold;
+    }
+    .cancel-button {
+      margin-top: 10px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .cancel-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    ul {
+      padding-left: 1.2rem;
+      margin: 0.5rem 0;
+    }
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: center;
+      }
+      .top-navigation {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .container {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">Village Food Delivery</div>
+    <nav class="top-navigation">
+      <a href="home.html">Home</a>
+      <a href="#" onclick="goToCart()" class="cart-button">
+        Cart <span id="cart-item-count" class="cart-count" style="display: none;">0</span>
+      </a>
+      <a href="orders.html">Your Orders</a>
+      <button onclick="logout()">Logout</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h1>Your Orders</h1>
+    <div id="order-list">Loading...</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const orderList = document.getElementById('order-list');
+
+    auth.onAuthStateChanged(user => {
+      if (!user) return window.location.href = 'login.html';
+
+      db.collection('orders')
+        .where('userId', '==', user.uid)
+        .orderBy('timestamp', 'desc')
+        .get()
+        .then(snapshot => {
+          orderList.innerHTML = '';
+          if (snapshot.empty) {
+            orderList.textContent = 'You have no orders.';
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const order = doc.data();
+            const orderId = doc.id;
+
+            // Safe check for timestamp
+            const date = order.timestamp?.seconds
+              ? new Date(order.timestamp.seconds * 1000).toLocaleString()
+              : 'Unknown';
+
+            const itemsHtml = order.items?.map(item =>
+              `<li>${item.name} x ${item.quantity} - ₹${(item.price * item.quantity).toFixed(2)}</li>`
+            ).join('') || '<li>No items</li>';
+
+            const orderDiv = document.createElement('div');
+            orderDiv.className = 'order';
+            orderDiv.innerHTML = `
+              <div><strong>Date:</strong> ${date}</div>
+              <div><strong>Status:</strong> <span class="order-status">${order.status}</span></div>
+              <ul>${itemsHtml}</ul>
+              ${order.status === 'Pending' ? `<button class="cancel-button" onclick="cancelOrder('${orderId}', this)">Cancel Order</button>` : `<button class="cancel-button" disabled>Cancelled</button>`}
+            `;
+            orderList.appendChild(orderDiv);
+          });
+        })
+        .catch(err => {
+          console.error(err);
+          orderList.textContent = "Failed to load orders.";
+        });
+    });
+
+    function cancelOrder(orderId, button) {
+      if (!confirm('Are you sure you want to cancel this order?')) return;
+
+      db.collection('orders').doc(orderId).update({ status: 'Cancelled' })
+        .then(() => {
+          button.textContent = 'Cancelled';
+          button.disabled = true;
+          const statusSpan = button.parentElement.querySelector('.order-status');
+          if (statusSpan) statusSpan.textContent = 'Cancelled';
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Failed to cancel order.');
+        });
+    }
+
+    function goToCart() {
+      window.location.href = 'cart.html';
+    }
+
+    function logout() {
+      auth.signOut().then(() => window.location.href = 'login.html');
+    }
+  </script>
+</body>
+</html>

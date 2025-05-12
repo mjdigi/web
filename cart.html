@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Home - Village Food Delivery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Open Sans', sans-serif;
+      background-color: #f8f9fa;
+      color: #343a40;
+      line-height: 1.6;
+    }
+
+    .header {
+      background-color: #28a745;
+      color: white;
+      padding: 1rem 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .top-navigation {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .top-navigation a,
+    .top-navigation button {
+      color: white;
+      text-decoration: none;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.5rem 0;
+    }
+
+    .top-navigation a:hover,
+    .top-navigation button:hover {
+      text-decoration: underline;
+    }
+
+    .cart-button {
+      position: relative;
+      padding: 0.5rem 1rem;
+      border: 1px solid white;
+      border-radius: 0.25rem;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      background-color: #dc3545;
+      color: white;
+      font-size: 0.8rem;
+      border-radius: 50%;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    h1 {
+      color: #28a745;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    #cart-items {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f1f1;
+      padding: 10px 15px;
+      border-radius: 6px;
+    }
+
+    .info {
+      font-size: 1rem;
+    }
+
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quantity-controls button {
+      background-color: #007bff;
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .quantity-controls button:hover {
+      background-color: #0056b3;
+    }
+
+    .total {
+      text-align: right;
+      font-size: 1.2rem;
+      margin-top: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .place-order {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 30px auto 0;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      text-align: center;
+    }
+
+    .place-order:hover {
+      background-color: #218838;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .top-navigation {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .container {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">Village Food Delivery</div>
+    <nav class="top-navigation">
+      <a href="home.html">Home</a>
+      <a href="#" onclick="goToCart()" class="cart-button">
+        Cart <span id="cart-item-count" class="cart-count" style="display: none;">0</span>
+      </a>
+      <a href="#" onclick="goToOrders()">Your Orders</a>
+      <button onclick="logout()">Logout</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h1>Your Cart</h1>
+    <div id="cart-items"></div>
+    <div class="total" id="cart-total">Total: ₹0.00</div>
+    <button class="place-order" onclick="placeOrder()">Place Order</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+
+    auth.onAuthStateChanged(user => {
+      if (!user) window.location.href = 'login.html';
+    });
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      container.innerHTML = '';
+      let total = 0;
+
+      cartItems.forEach((item, index) => {
+        total += item.price * item.quantity;
+        const div = document.createElement('div');
+        div.className = 'cart-item';
+        div.innerHTML = `
+          <div class="info">
+            <strong>${item.name}</strong><br>
+            ₹${item.price.toFixed(2)} x ${item.quantity}
+          </div>
+          <div class="quantity-controls">
+            <button onclick="updateQuantity(${index}, -1)">−</button>
+            ${item.quantity}
+            <button onclick="updateQuantity(${index}, 1)">+</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('cart-total').textContent = `Total: ₹${total.toFixed(2)}`;
+    }
+
+    function updateQuantity(index, change) {
+      cartItems[index].quantity += change;
+      if (cartItems[index].quantity <= 0) cartItems.splice(index, 1);
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      renderCart();
+    }
+
+    function placeOrder() {
+      const user = auth.currentUser;
+      if (!user || cartItems.length === 0) return alert("Please login and add items to cart.");
+
+      const order = {
+        userId: user.uid,
+        items: cartItems,
+        timestamp: new Date(),
+        status: "Placed"
+      };
+
+      db.collection('orders').add(order).then(() => {
+        localStorage.removeItem('cartItems');
+        alert('Order placed successfully!');
+        window.location.href = 'orders.html';
+      }).catch(err => {
+        console.error(err);
+        alert('Failed to place order.');
+      });
+    }
+
+    function goToOrders() {
+      window.location.href = 'orders.html';
+    }
+
+    function goToCart() {
+      window.location.href = 'cart.html';
+    }
+
+    function logout() {
+      auth.signOut().then(() => window.location.href = 'login.html');
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>
